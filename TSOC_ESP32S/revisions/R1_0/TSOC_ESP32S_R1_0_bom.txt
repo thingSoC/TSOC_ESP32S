@@ -1,0 +1,22 @@
+Partlist exported from U:/PatternAgents/eagle/TSOC_Modules/TSOC_ESP32S/TSOC_ESP32S/TSOC_ESP32S.sch at 11/26/2016 3:32:25 PM
+
+Qty Value              Device                                                Package                   Parts                                          Description                         
+2                      M01PTH                            1X01    5V0, GND                                       Header 1                            
+1                      M08X2                            2X8     JTAG                                                
+3   100nf              CERAMIC-100NF-50V-10%-X7R(0603)  C0603   C1, C3 C7,                                     302010138                           
+10  10K 1/10W          SMD-RES-10K-5%-1/10W(0603)       R0603   R3, R4, R10, R11, R13, R14, R15, R16, R17, R20 301010293                           
+1   10uf               CERAMIC-10UF-10V-10%-X5R(0603)   C0603   C4                                             302010103                           
+2   12pf               CERAMIC-12PF-50V-5%-NPO(0603)    C0603   C100, C101                                     302010067                           
+10  1K 1/10W           SMD-RES-1K-5%-1/10W(0603)        R0603   R5, R6, R7, R8, R9, R12, R18, R19, R21, R22    301010291                           
+1   1uf                CERAMIC-1UF-25V-10%-X7R(0603)    C0603   C2                                             302010139                           
+2   220R               SMD-RES-220R-5%-1/10W(0603)      R0603   R1, R2                                         301010163                           
+1   3.2768KHZ          SMD-CRYSTAL-32.768KHZ-X2-SMD     SMD     Y100                                           306010020                           
+3   330OHM-500MA       SMD-FERRITE-120-OHM-500MA(0603)  L0603   L1, L2, L3                                     303030001                           
+2   47u                CAPACITOR-1206                   C1206   C5, C6                                         Capacitors                          
+2   B3U-1000P-2P-SMD   SMD-BUTTON(2P-3.0X2.5X1.2+0.4MM) SW2-2.6 RST, USER                                      311020047                           
+1   CJT1117-3.3-SOT223 PMIC-CJT1117-3.3(SOT223)         SOT-223 U1                                             310030097                           
+1   ESP-32S            ESP-32S                          ESP-32S U2                                                                                 
+1   GREEN-0603         SMD-LED-CLEAR-GREEN(0603)        0603    LED2                                           304090043                           
+1   BSS138PS           BSS138PS                         SOT363  Q1                                             Dual N-Channel Mosfet                
+1   TSOC-PCB-SINGLE    TSOC-PCB-SINGLE                  TSOC-BB BRD                                            thingSoC PCB Outlines               
+1   YELLOW-0603        SMD-LED-CLEAR-YELLOW(0603)       0603    LED1                                           304090044                           
