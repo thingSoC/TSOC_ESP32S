@@ -1,9 +1,0 @@
-name=TSOC_GROVEY_I2CHUB
-version=1.0.0
-author=Tom Moxon
-maintainer=The PatternAgents, LLC <patternagents@gmail.com>
-sentence=thingSoC Grovey I2C Hub
-paragraph=Examples and Libraries for the thingSoC Grovey I2C Hub.
-category=Other
-url=https://github.com/thingSoC/TSOC_GROVEY_I2CHUB
-architectures=*
