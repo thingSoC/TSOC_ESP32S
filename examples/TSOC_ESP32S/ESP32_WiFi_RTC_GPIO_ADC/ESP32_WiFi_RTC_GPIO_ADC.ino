@@ -29,22 +29,36 @@
     Blynk community:            http://community.blynk.cc
     Social networks:            http://www.fb.com/blynkapp
                                 http://twitter.com/blynk_app
-  Blynk library is licensed under MIT license
-  This example code is in public domain.
- *************************************************************
+                                
   Blynk can provide your device with time data, like an RTC.
   Please note that the accuracy of this method is up to several seconds.
   App project setup:
     RTC widget (no pin required)
     Value Display M widget on V1
     Value Display M widget on V2
-  WARNING :
-  For this example you'll need SimpleTimer library:
+                                  
+  Blynk library is licensed under MIT license
+  This example code is in public domain.
+ *************************************************************
+  Additional Libraires Required for this example
+  Use the Sketch->Include Library->Library Manager to install
+  or simply unzip the libraries into your Arduino->libraries directory
+ 
+  SimpleTimer Library:
     https://github.com/jfturcot/SimpleTimer
-  And also this Time keeping library:
+  Time keeping Library:
     https://github.com/PaulStoffregen/Time
-  This code is based on an example from the Time library:
-    https://github.com/PaulStoffregen/Time/blob/master/examples/TimeSerial/TimeSerial.ino
+
+ ------------------------------------------------------------
+  Additonal Libraries required for supporting the Grovey GPIO  
+  SX1509 GPIO Library:
+  https://github.com/sparkfun/SparkFun_SX1509_Arduino_Library
+
+ ------------------------------------------------------------
+  Additonal Libraries required for supporting the Grovey ADC
+  ADS1115/ADS1015 ADC Library:
+  https://github.com/adafruit/Adafruit_ADS1X15 
+  
  *************************************************************
  Grovey ESP32 WiFi RTC GPIO Sketch Overview
 
@@ -64,24 +78,31 @@
  V12 - Mapped to physical GPIO Pin 2
  V13 - Available
  V14 - Available
- V15 - Available  
- V16 - Grovey GPIO Jack J1 Signal A - PWM Output
- V17 - Grovey GPIO Jack J1 Signal B - Digital Input
- V18 - Grovey GPIO Jack J1 Power - Digital Output
- V19 - Grovey GPIO Jack J1 BLUE LED - PWM Output
- V20 - Grovey GPIO Jack J2 Signal A - PWM Output
- V21 - Grovey GPIO Jack J2 Signal B - Digital Input
- V22 - Grovey GPIO Jack J12 Power - Digital Output
- V23 - Grovey GPIO Jack J12 RED LED - PWM Output
- V24 - Grovey GPIO Jack J3 Signal A - PWM Output
- V25 - Grovey GPIO Jack J3 Signal B - Digital Input
- V26 - Grovey GPIO Jack J3 Power - Digital Output
- V27 - Grovey GPIO Jack J3 GREEN LED - PWM Output
- V28 - Grovey GPIO Jack J4 Signal A - PWM Output
- V29 - Grovey GPIO Jack J4 Signal B - Digital Input
- V30 - Grovey GPIO Jack J4 Power - Digital Output
+ V15 - Available
+ ------------------------------------------------------------  
+ V16 - Grovey GPIO Jack J1 Signal A   - PWM Output
+ V17 - Grovey GPIO Jack J1 Signal B   - Digital Input
+ V18 - Grovey GPIO Jack J1 Power      - Digital Output
+ V19 - Grovey GPIO Jack J1 BLUE LED   - PWM Output
+ V20 - Grovey GPIO Jack J2 Signal A   - PWM Output
+ V21 - Grovey GPIO Jack J2 Signal B   - Digital Input
+ V22 - Grovey GPIO Jack J12 Power     - Digital Output
+ V23 - Grovey GPIO Jack J12 RED LED   - PWM Output
+ V24 - Grovey GPIO Jack J3 Signal A   - PWM Output
+ V25 - Grovey GPIO Jack J3 Signal B   - Digital Input
+ V26 - Grovey GPIO Jack J3 Power      - Digital Output
+ V27 - Grovey GPIO Jack J3 GREEN LED  - PWM Output
+ V28 - Grovey GPIO Jack J4 Signal A   - PWM Output
+ V29 - Grovey GPIO Jack J4 Signal B   - Digital Input
+ V30 - Grovey GPIO Jack J4 Power      - Digital Output
  V31 - Grovey GPIO Jack J4 YELLOW LED - PWM Output
-
+ ------------------------------------------------------------
+ V32 - Grovey ADC Jack J1 (Analog Input)
+ V33 - Grovey ADC Jack J1 (Analog Input)
+ V34 - Grovey ADC Jack J1 (Analog Input)
+ V35 - Grovey ADC Jack J1 (Analog Input)
+ ------------------------------------------------------------
+   
  *************************************************************/
 
 /* Grovey ESP32 Blynk WiFi defines */
@@ -104,6 +125,11 @@
 //const byte SX1509_ADDRESS = 0x71;  // SX1509 I2C address 03
 SX1509 io; // Instantiate the SX1509
 
+/* Library for the Grovey ADC board */
+#include <Adafruit_ADS1015.h>
+// Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
+Adafruit_ADS1015 ads;     /* Use this for the 12-bit version */
+
 // You should get Auth Token in the Blynk App.
 // Go to the Project Settings (nut icon).
 char auth[] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -121,9 +147,11 @@ WidgetRTC rtc;
 // A "virtual LED" instance to indicate connection state on pin V5
 WidgetLED LED_connected(V5);
 // A "virtual LED" instance to indicate the hardware state on pin V6
+int fault, fault_last = 0;
 WidgetLED LED_fault(V6);
 
 // LED widgets for Grovey GPIO input pins
+byte LED1_state, LED2_state, LED3_state, LED4_state = 0;
 WidgetLED GPIO_Led1(17);
 WidgetLED GPIO_Led2(21);
 WidgetLED GPIO_Led3(25);
@@ -179,41 +207,84 @@ void clockDisplay()
   // Send uptime to the App
   Blynk.virtualWrite(V3, upHours);
   Blynk.virtualWrite(V4, upDays);
-
+  
   // Note Bene : AnalogRead seems to crash WiFi - don't use right now...
   //ADC0 = GPIO36 = TSOC IO1
   // float ana = (analogRead(A0) / 4096) * 3.3 ;
   //ADC19 = GPIO26 = TSOC IRQ
   // int ana = analogRead(A19); // Not Working Yet...
-  float ana = 3.3;
-  Blynk.virtualWrite(V7, ana);
-}
+  //float ana = 3.3;
+  //Blynk.virtualWrite(V7, "3.30");
 
-void readGPIOinputs() {
+  // in order not to flood the blynk server, only update if changed
   // J1
-  if (io.digitalRead(1)) {
-    GPIO_Led1.on();
-  } else {
-    GPIO_Led1.off();
+  if ( io.digitalRead(1) != LED1_state) {
+    LED1_state = io.digitalRead(1);
+    if (LED1_state) {
+      GPIO_Led1.on();
+    } else {
+      GPIO_Led1.off();
+    }
   }
-  // J2
-  if (io.digitalRead(5)) {
-    GPIO_Led2.on();
-  } else {
-    GPIO_Led2.off();
+  if ( io.digitalRead(5) != LED2_state) {
+    LED2_state = io.digitalRead(5);
+    if (LED2_state) {
+      GPIO_Led2.on();
+    } else {
+      GPIO_Led2.off();
+    }
+  }
+  
+  if ( io.digitalRead(9) != LED3_state) {
+    LED3_state = io.digitalRead(9);
+    if (LED3_state) {
+      GPIO_Led3.on();
+    } else {
+      GPIO_Led3.off();
+    }
+  }
+  if ( io.digitalRead(13) != LED4_state) {
+    LED4_state = io.digitalRead(13);
+    if (LED4_state) {
+      GPIO_Led4.on();
+    } else {
+      GPIO_Led4.off();
+    }
+  }
+
+  // You can't send any value at any time or you'll flood the Blynk Server
+  // Please don't send more that 10 values per second.
+  // So this is called from the SimpleTimer once per second
+  int16_t adc0, adc1, adc2, adc3 = 0;                     // local variables to hold the current ADC readings
+  int16_t adc0_last, adc1_last, adc2_last, adc3_last = 0; // local variables to hold the last ADC readings
+  // Virtual Pin V32 is used to push the ADC0 reading  
+  adc0 = ads.readADC_SingleEnded(0);
+  if (adc0 != adc0_last) {
+    adc0_last = adc0;
+    Blynk.virtualWrite(V32, adc0);
+    //Serial.print("AIN1: "); Serial.println(adc0);
   }  
-  // J3
-  if (io.digitalRead(9)) {
-    GPIO_Led3.on();
-  } else {
-    GPIO_Led3.off();
-  }
-  // J4
-  if (io.digitalRead(13)) {
-    GPIO_Led4.on();
-  } else {
-    GPIO_Led4.off();
-  }        
+  // Virtual Pin V33 is used to push the ADC1 reading  
+  adc1 = ads.readADC_SingleEnded(1);
+  if (adc1 != adc1_last) {
+    adc1_last = adc1;
+    Blynk.virtualWrite(V33, adc1);
+    //Serial.print("AIN2: "); Serial.println(adc1);
+  }  
+  // Virtual Pin V34 is used to push the ADC2 reading  
+  adc2 = ads.readADC_SingleEnded(2);
+  if (adc2 != adc2_last) {
+    adc2_last = adc2;
+    Blynk.virtualWrite(V34, adc2);
+    //Serial.print("AIN3: "); Serial.println(adc3);
+  }    
+  // Virtual Pin V35 is used to push the ADC3 reading  
+  adc3 = ads.readADC_SingleEnded(3);
+  if (adc3 != adc3_last) {
+    adc3_last = adc3;
+    Blynk.virtualWrite(V35, adc3);
+    //Serial.print("AIN4: "); Serial.println(adc3);
+  }    
 }
 
 // "ledc" channel 1 (ESP32 PWM)
@@ -225,9 +296,19 @@ BLYNK_WRITE(V8) {
   // so use "fault" to indiacte an out-of-bounds parameter
   // this is just an arbitrary example usage...
   if (pinData > 255) {
-    LED_fault.on();
+    fault = 1;
   } else {
-    LED_fault.off();
+    fault = 0;
+  } 
+  
+  // only send updates when value changes...
+  if (fault_last != fault) {
+     fault_last = fault;
+     if (fault) {   
+       LED_fault.on();
+     } else {
+       LED_fault.off();
+     }
   }
 }
 
@@ -387,6 +468,22 @@ void setup()
   io.pinMode(15, ANALOG_OUTPUT);  
   Serial.println("Grovey GPIO Board Running... ");
 
+  // The ADC input range (or gain) can be changed via the following
+  // functions, but be careful never to exceed VDD +0.3V max, or to
+  // exceed the upper and lower limits if you adjust the input range!
+  // Setting these values incorrectly may destroy your ADC!
+  //                                                                ADS1015  ADS1115
+  //                                                                -------  -------
+  ads.setGain(GAIN_TWOTHIRDS);  // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
+  // ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
+  // ads.setGain(GAIN_TWO);        // 2x gain   +/- 2.048V  1 bit = 1mV      0.0625mV
+  // ads.setGain(GAIN_FOUR);       // 4x gain   +/- 1.024V  1 bit = 0.5mV    0.03125mV
+  // ads.setGain(GAIN_EIGHT);      // 8x gain   +/- 0.512V  1 bit = 0.25mV   0.015625mV
+  // ads.setGain(GAIN_SIXTEEN);    // 16x gain  +/- 0.256V  1 bit = 0.125mV  0.0078125mV
+  Serial.println("Starting ADS ADC... "); 
+  ads.begin();
+  Serial.println("Grovey ADC Board Running... ");
+  
   Serial.println("Starting Blynk... ");
   Blynk.begin(auth, ssid, pass);
   // use this is you need WPA2
@@ -394,8 +491,6 @@ void setup()
   
   Serial.println("Blynk Running... ");
   while(Blynk.connect() == false);      // wait for Blynk to connect to Server
-  LED_connected.on();                   // catch-22 ?how to indicate disconnected?
-  LED_fault.off();                      // same with fault?
   Serial.println("Blynk Connected... ");
 
   // Begin synchronizing time
@@ -405,14 +500,9 @@ void setup()
   // Other Time library functions can be used, like:
   //   timeStatus(), setSyncInterval(interval)...
   // Read more: http://www.pjrc.com/teensy/td_libs_Time.html
-
-  // Display digital clock every 1 second
+  // Update Display digital clock every 1.5 seconds
   // we do this to avoid flooding the Blynk server with too much data
-  timer.setInterval(1000L, clockDisplay);
-
-  // read the GPIO inputs once per second also 
-  // (sluggish , but this can be tuned... )
-  timer.setInterval(1000L, readGPIOinputs);
+  timer.setInterval(1500L, clockDisplay);
 
   /* setup ESP32 pin modes */
   /* Setup two DAC channels GPIO25=ADC18, GPIO26=ADC19 */
@@ -441,6 +531,15 @@ void setup()
   /* Note Bene : AnalogRead seems to crash WiFi - don't use right now on ESP32 2/9/2017 */
   // pinMode( A0,  ANALOG);
   // pinMode( A19, ANALOG);
+
+  // Since ADC Volt measurement not working yet on ESP32 , we'll do this once in setup...
+  Blynk.virtualWrite(V7, "3.30");
+  GPIO_Led1.off();
+  GPIO_Led2.off();
+  GPIO_Led3.off();
+  GPIO_Led4.off();    
+  LED_fault.off();
+  LED_connected.on();
 }
 
 /* gotta love a "clean" main loop! */
