@@ -1,4 +1,4 @@
-# TSOC_ESP32S - thingSoC Wi-Fi/Bluetooth Radio Module :
+# TSOC_ESP32S - thingSoC Wi-Fi Radio Module :
 
 
 [![thingSoC TSOC_ESP32S](https://raw.githubusercontent.com/thingSoC/TSOC_ESP32S/master/TSOC_ESP32S/images/product/TSOC_ESP32S_top_pop.png?raw=true)TSOC_ESP32S](https://github.com/thingSoC/TSOC_ESP32S)
